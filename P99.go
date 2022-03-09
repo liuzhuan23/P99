@@ -90,7 +90,7 @@ func (p *P99Stat) Run() {
 				// 等待时间+服务时间，等待时间是客户端调度的等待时间以及服务端读取请求、调度的时间，服务时间是请求被服务处理的实际时间
 				t = time.Now().UnixNano() - t
 				d[i] = append(d[i], t)
-				if err != -1 {
+				if code != -1 {
 					atomic.AddUint64(&transOK, 1)
 				}
 				atomic.AddUint64(&trans, 1)
