@@ -70,11 +70,13 @@ func (p *P99Stat) P99Run() {
 
 		// call 'init' handle hook
 		if p.c[i].pInit != nil {
-			p.c[i].pInit()
+			if p.c[i].pInit() == -1{
+                log.Errorf("P99无法调用初始化钩子，错误代码: -1")
+                continue
+            }
 		}
 
 		go func(i int) {
-			code := -1
 			for j := 0; j < p.m; j++ {
 				if rl != nil {
 					rl.Take()
@@ -82,9 +84,11 @@ func (p *P99Stat) P99Run() {
 
 				t := time.Now().UnixNano()
 
+                code := -1
+
 				// call 'run' handle hook
 				if p.c[i].pRun != nil {
-					p.c[i].pRun()
+					code = p.c[i].pRun()
 				}
 
 				// 等待时间+服务时间，等待时间是客户端调度的等待时间以及服务端读取请求、调度的时间，服务时间是请求被服务处理的实际时间
