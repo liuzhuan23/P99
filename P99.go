@@ -72,6 +72,7 @@ func (p *P99Stat) P99Run() {
 		if p.c[i].pInit != nil {
 			if p.c[i].pInit() == -1 {
 				log.Errorf("P99无法调用初始化钩子，错误代码: -1")
+				wg.Done()
 				continue
 			}
 		}
