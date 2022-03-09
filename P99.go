@@ -11,15 +11,22 @@ import (
 
 type P99CallBack func() int
 
+// pcb钩子是必须注册的，分成2个情况，1 未注册，使用者自己在事务routine内实现复用资源 2 注册，P99在发起routine前帮你复用资源
+// pin钩子是可以不进行注册的，如果未注册这个钩子，那就需要使用者在go func routine内自己复用套接字、句柄一类的资源变量
 type P99Stat struct {
 	pcb   P99CallBack
+	pin   P99CallBack
 	total int
 	n     int
 	m     int
 }
 
 func NewP99Stat(t1 int, n1 int) *P99Stat {
-	return &P99Stat{total: t1, n: n1, m: t1 / n1}
+	return &P99Stat{total: t1, n: n1, m: t1 / n1, pcb: nil, pin: nil}
+}
+
+func (p *P99Stat) InitState(f P99CallBack) {
+	p.pin = f
 }
 
 func (p *P99Stat) Register(f P99CallBack) {
@@ -35,7 +42,7 @@ func (p *P99Stat) Run() {
 	// 返回正常的总请求数
 	var transOK uint64
 
-	//等待所有事务测试完成的信号灯，信号数量是n*m
+	// 等待所有事务测试完成的信号灯，信号数量是n*m
 	var wg sync.WaitGroup
 	wg.Add(p.n * p.m)
 
@@ -44,7 +51,8 @@ func (p *P99Stat) Run() {
 
 	// 栅栏，控制客户端同时开始测试
 	var startWg sync.WaitGroup
-	startWg.Add(p.n + 1) // +1 是因为有一个goroutine用来记录开始时间
+	// +1 是因为有一个goroutine用来记录开始时间
+	startWg.Add(p.n + 1)
 
 	startTime := time.Now().UnixNano()
 	go func() {
@@ -56,7 +64,15 @@ func (p *P99Stat) Run() {
 	for i := 0; i < p.n; i++ {
 		dt := make([]int64, 0, p.m)
 		d = append(d, dt)
+		if p.pin != nil {
+			if err := p.pin(); err == -1 {
+				log.Infof("P99无法初始化pin钩子，错误代码: %d，进入资源句柄复用模式\n", err)
+			}
+		} else {
+			log.Infof("P99未发现pin钩子，进入资源句柄复用模式\n")
+		}
 		go func(i int) {
+			code := -1
 			for j := 0; j < p.m; j++ {
 				if rl != nil {
 					rl.Take()
@@ -65,7 +81,11 @@ func (p *P99Stat) Run() {
 				t := time.Now().UnixNano()
 
 				// 调用钩子运行服务测试
-				err := p.pcb()
+				if p.pcb != nil {
+					code = p.pcb()
+				} else {
+					log.Infof("P99无法调用pcb钩子，错误代码: %d\n", code)
+				}
 
 				// 等待时间+服务时间，等待时间是客户端调度的等待时间以及服务端读取请求、调度的时间，服务时间是请求被服务处理的实际时间
 				t = time.Now().UnixNano() - t
