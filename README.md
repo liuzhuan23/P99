@@ -12,41 +12,78 @@ https://github.com/rpcxio/rpcx-benchmark.git
 ```
 package main
 
-import (
-	"github.com/liuzhuan23/P99"
-)
+import "abc/P99"
+import "fmt"
 
-func aaa() int {
-	fmt.Println("test123")
-	return 12
+type aaa struct {
+	id int
+}
+
+func (a *aaa) Init() int {
+    return 1
+}
+
+func (a *aaa) Run() int {
+	fmt.Println("aaa id: ", a.id)
+    return 1
+}
+
+type bbb struct {
+	id int
+}
+
+func (b *bbb) Init() int {
+    return 1
+}
+
+func (b *bbb) Run() int {
+	fmt.Println("bbb id: ", b.id)
+    return 1
 }
 
 func main() {
-	f1 := P99.NewP99Stat(10, 1)
-	f1.Register(aaa)
-	f1.Run()
+    f1 := P99.NewP99Stat(8, 4)
+
+    var a1 aaa
+    a1.id = 1
+    f1.P99Register(a1.Init, a1.Run)
+
+    var a2 aaa
+    a2.id = 2
+    f1.P99Register(a2.Init, a2.Run)
+
+    var b1 bbb
+    b1.id = 3
+    f1.P99Register(b1.Init, b1.Run)
+
+    var b2 bbb
+    b2.id = 4
+    f1.P99Register(b2.Init, b2.Run)
+
+    fmt.Println("数量: ", f1.P99IfCount())
+
+    f1.P99Run()
 }
 ```
 
 #### example output
 ```
-test123
-test123
-test123
-test123
-test123
-test123
-test123
-test123
-test123
-test123
-2022/03/08 11:55:31 P99.go:86: INFO : P99客户端数量: 1
-2022/03/08 11:55:31 P99.go:87: INFO : P99每个客户端的并发请求数: 10
-2022/03/08 11:55:31 stats.go:15: INFO : took 0 ms for 10 requests
-2022/03/08 11:55:31 stats.go:36: INFO : sent     requests    : 10
-2022/03/08 11:55:31 stats.go:37: INFO : received requests    : 10
-2022/03/08 11:55:31 stats.go:38: INFO : received requests_OK : 10
-2022/03/08 11:55:31 stats.go:40: INFO : throughput  (TPS)    : 32467
-2022/03/08 11:55:31 stats.go:45: INFO : mean: 14470 ns, median: 10941 ns, max: 45679 ns, min: 10001 ns, p99.9: 29446 ns
-2022/03/08 11:55:31 stats.go:46: INFO : mean: 0 ms, median: 0 ms, max: 0 ms, min: 0 ms, p99.9: 0 ms
+数量:  4
+bbb id:  4
+bbb id:  4
+aaa id:  1
+aaa id:  1
+aaa id:  2
+aaa id:  2
+bbb id:  3
+bbb id:  3
+2022/03/09 13:46:18 P99.go:106: INFO : P99客户端数量: 4
+2022/03/09 13:46:18 P99.go:107: INFO : P99每个客户端的并发请求数: 2
+2022/03/09 13:46:18 stats.go:15: INFO : took 0 ms for 8 requests
+2022/03/09 13:46:18 stats.go:36: INFO : sent     requests    : 8
+2022/03/09 13:46:18 stats.go:37: INFO : received requests    : 8
+2022/03/09 13:46:18 stats.go:38: INFO : received requests_OK : 0
+2022/03/09 13:46:18 stats.go:40: INFO : throughput  (TPS)    : 148961
+2022/03/09 13:46:18 stats.go:45: INFO : mean: 822 ns, median: 744 ns, max: 1252 ns, min: 696 ns, p99.9: 1096 ns
+2022/03/09 13:46:18 stats.go:46: INFO : mean: 0 ms, median: 0 ms, max: 0 ms, min: 0 ms, p99.9: 0 ms
 ```
