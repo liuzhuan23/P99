@@ -70,10 +70,10 @@ func (p *P99Stat) P99Run() {
 
 		// call 'init' handle hook
 		if p.c[i].pInit != nil {
-			if p.c[i].pInit() == -1{
-                log.Errorf("P99无法调用初始化钩子，错误代码: -1")
-                continue
-            }
+			if p.c[i].pInit() == -1 {
+				log.Errorf("P99无法调用初始化钩子，错误代码: -1")
+				continue
+			}
 		}
 
 		go func(i int) {
@@ -84,7 +84,7 @@ func (p *P99Stat) P99Run() {
 
 				t := time.Now().UnixNano()
 
-                code := -1
+				code := -1
 
 				// call 'run' handle hook
 				if p.c[i].pRun != nil {
