@@ -19,16 +19,17 @@ type P99Stat struct {
 }
 
 type P99IFace struct {
-	pInit P99CallBack
-	pRun  P99CallBack
+	pInit  P99CallBack
+	pRun   P99CallBack
+	pClear P99CallBack
 }
 
 func NewP99Stat(t1 int, n1 int) *P99Stat {
 	return &P99Stat{total: t1, n: n1, m: t1 / n1}
 }
 
-func (p *P99Stat) P99Register(init P99CallBack, run P99CallBack) {
-	var pf P99IFace = P99IFace{pInit: init, pRun: run}
+func (p *P99Stat) P99Register(init P99CallBack, run P99CallBack, clear P99CallBack) {
+	var pf P99IFace = P99IFace{pInit: init, pRun: run, pClear: clear}
 	p.c = append(p.c, pf)
 }
 
@@ -105,6 +106,14 @@ func (p *P99Stat) P99Run() {
 
 	//等待信号灯
 	wg.Wait()
+
+	// 需要在所有并发协程结束后，再调用clear钩子，有就调了，没有就跳过去了
+	for i := 0; i < p.n; i++ {
+		// call 'clear' handle hook
+		if p.c[i].pClear != nil {
+			p.c[i].pClear()
+		}
+	}
 
 	// 统计与输出
 	log.Infof("P99客户端数量: %d\n", p.n)
